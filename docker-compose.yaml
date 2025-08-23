@@ -1,0 +1,45 @@
+services:
+  postgres-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: ../docker/dockerfile-backend
+    environment:
+      DATABASE_URL: postgres://admin:secret@postgres-db:5432/postgres
+    depends_on:
+      - postgres-db
+    command: ["npx", "prisma", "migrate", "deploy"]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/dockerfile-backend
+    environment:
+      DATABASE_URL: postgres://admin:secret@postgres-db:5432/postgres
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres-db
+      - migrate
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/dockerfile-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
